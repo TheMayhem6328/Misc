@@ -1,7 +1,9 @@
 import imaplib
 import json
+from os import chdir
 
 # Retrieve host and credentials from config
+chdir(__file__.removesuffix("/__init__.py"))
 with open("config.json") as file:
     config: dict = json.load(file)
     HOST = config["host"]
@@ -20,6 +22,8 @@ typ, data = mailbox.search(None, "ALL")
 count = 1
 for num in data[0].split():
     typ, data = mailbox.fetch(num, "(RFC822)")
+    with open("mail.eml", "wb") as file:
+        file.write(data[0][1])
     print("Mail %i received" % count)
     count += 1
 
