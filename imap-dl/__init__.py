@@ -4,7 +4,7 @@ import email
 from os import chdir, mkdir
 from os.path import exists
 from socket import gaierror
-from sys import exit
+from concurrent.futures import ThreadPoolExecutor
 
 # Resolve directories and create as needed
 DIRNAME = "emails"
@@ -27,10 +27,14 @@ mailbox.login(USER, PASS)
 mailbox.select("Inbox")
 _, data = mailbox.search(None, "ALL")
 
+# Function for writing new file
+def write_mail(filename: str, content: bytes):
+    with open(filename, "wb") as file:
+        file.write(content)
+    print("I: Saved - %s" % filename)
 
 # Function for mail retrieval
 def retrieve_mail(mailbox: imaplib.IMAP4, upper: int, lower:int):
-    print(upper, lower)
     _, data = mailbox.fetch(f"{lower}:{upper}", "(RFC822)")
     for mail in data:
         # Skip if item is not proper mail
@@ -44,9 +48,8 @@ def retrieve_mail(mailbox: imaplib.IMAP4, upper: int, lower:int):
 
         # Save to file
         filename = f"{date} ---- {subject}.eml"
-        with open(filename, "wb") as file:
-            file.write(mail[1])
-        print("I: Saved - %s" % filename)
+        with ThreadPoolExecutor() as tpe:
+            tpe.submit(write_mail, filename, mail[1])
 
 
 if __name__ == "__main__":
@@ -78,8 +81,6 @@ if __name__ == "__main__":
         print("\nW: Keyboard interrupt detected - exiting")
         mailbox.close()
         mailbox.logout()
-        exit()
     else:
         mailbox.close()
         mailbox.logout()
-        exit()
